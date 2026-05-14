@@ -197,7 +197,6 @@ class Processor(FlowProcessor):
         FlowProcessor.add_args(parser)
 
         parser.add_argument(
-            "-l",
             "--languages",
             default=default_languages,
             help=f"OCR languages (default: {default_languages})",

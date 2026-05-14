@@ -24,6 +24,7 @@ dependencies = [
     "langchain-experimental",
     "langchain-huggingface",
     "langchain-text-splitters",
+    "marker-pdf",
     "mcp",
     "minio",
     "nltk",
@@ -53,6 +54,7 @@ agent-manager-react = "trustgraph.agent.react:run"
 agent-orchestrator = "trustgraph.agent.orchestrator:run"
 api-gateway = "trustgraph.gateway:run"
 chunker-recursive = "trustgraph.chunking.recursive:run"
+pdf-ocr-marker = "trustgraph.decoding.ocr_marker:run"
 chunker-token = "trustgraph.chunking.token:run"
 chunker-semantic = "trustgraph.chunking.semantic:run"
 bootstrap = "trustgraph.bootstrap.bootstrapper:run"

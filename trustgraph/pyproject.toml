@@ -11,12 +11,11 @@ readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
     "trustgraph-base>=2.4,<2.5",
-    "trustgraph-bedrock>=2.4,<2.5",
     "trustgraph-cli>=2.4,<2.5",
     "trustgraph-embeddings-hf>=2.4,<2.5",
     "trustgraph-flow>=2.4,<2.5",
+    "trustgraph-ocr>=2.4,<2.5",
     "trustgraph-unstructured>=2.4,<2.5",
-    "trustgraph-vertexai>=2.4,<2.5",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
