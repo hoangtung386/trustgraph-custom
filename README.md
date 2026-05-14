@@ -42,8 +42,8 @@ The platform:
   - [x] Deploy locally with Docker
   - [x] Deploy in cloud with Kubernetes
 - [x] Support for all major LLMs
-  - [x] API support for Anthropic, Cohere, Gemini, Mistral, OpenAI, and others
-  - [x] Model inferencing with vLLM, Ollama, TGI, LM Studio, and Llamafiles
+  - [x] Unified API via OpenRouter (200+ models: OpenAI, Anthropic, Google, Meta, Mistral, etc.)
+  - [x] Model inferencing with OpenRouter as the single endpoint
 - [x] Developer friendly
   - [x] REST API [Docs](https://docs.trustgraph.ai/reference/apis/rest.html)
   - [x] Websocket API [Docs](https://docs.trustgraph.ai/reference/apis/websocket.html)
@@ -54,7 +54,7 @@ The platform:
 
 How many times have you cloned a repo and opened the `.env.example` to see the dozens of API keys for 3rd party dependencies needed to make the services work? There are only 3 things in TrustGraph that might need an API key:
 
-- 3rd party LLM services like Anthropic, Cohere, Gemini, Mistral, OpenAI, etc.
+- 3rd party LLM services via OpenRouter (200+ models)
 - 3rd party OCR like Mistral OCR
 - The API key *you set* for the TrustGraph API gateway
 
@@ -63,7 +63,7 @@ Everything else is included.
 - [x] Managed Vector embedding storage in [Qdrant](https://github.com/qdrant/qdrant)
 - [x] Managed File and Object storage in [Garage](https://github.com/deuxfleurs-org/garage) (S3 compatible)
 - [x] Managed High-speed Pub/Sub messaging fabric with [Pulsar](https://github.com/apache/pulsar)
-- [x] Complete LLM inferencing stack for open LLMs with [vLLM](https://github.com/vllm-project/vllm), [TGI](https://github.com/huggingface/text-generation-inference), [Ollama](https://github.com/ollama/ollama), [LM Studio](https://github.com/lmstudio-ai), and [Llamafiles](https://github.com/mozilla-ai/llamafile) 
+- [x] LLM inferencing via [OpenRouter](https://openrouter.ai) — 200+ models through a single endpoint 
 
 ## Quickstart
 
@@ -141,29 +141,10 @@ A Context Core typically includes:
 TrustGraph provides component flexibility to optimize agent workflows.
 
 <details>
-<summary>LLM APIs</summary>
+<summary>LLM</summary>
 <br>
 
-- Anthropic<br>
-- AWS Bedrock<br>
-- AzureAI<br>
-- AzureOpenAI<br>
-- Cohere<br>
-- Google AI Studio<br>
-- Google VertexAI<br>
-- Mistral<br>
-- OpenAI<br>
-
-</details>
-<details>
-<summary>LLM Orchestration</summary>
-<br>
-
-- LM Studio<br>
-- Llamafiles<br>
-- Ollama<br>
-- TGI<br>
-- vLLM<br>
+- OpenRouter (200+ models: OpenAI, Anthropic, Google, Mistral, Meta, etc.)<br>
 
 </details>
 <details>

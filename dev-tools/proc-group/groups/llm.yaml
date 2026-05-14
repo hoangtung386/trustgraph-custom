@@ -22,3 +22,23 @@ processors:
       id: text-completion-rag
       max_output: 8192
       temperature: 0.0
+
+  # OpenRouter: drop-in replacement for OpenAI, supports 200+ models
+  # Set OPENROUTER_API_KEY (or OPENAI_TOKEN) env var before running.
+  # Uncomment the blocks below to use OpenRouter for text-completion:
+  #
+  # - class: trustgraph.model.text_completion.openrouter.Processor
+  #   params:
+  #     <<: *defaults
+  #     id: text-completion-openrouter
+  #     model: openai/gpt-4o
+  #     max_output: 8192
+  #     temperature: 0.0
+  #
+  # - class: trustgraph.model.text_completion.openrouter.Processor
+  #   params:
+  #     <<: *defaults
+  #     id: text-completion-openrouter-rag
+  #     model: openai/gpt-4o
+  #     max_output: 8192
+  #     temperature: 0.0

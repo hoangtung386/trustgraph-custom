@@ -6,16 +6,12 @@ testing token-by-token response delivery through the complete pipeline.
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 from openai.types.chat import ChatCompletionChunk
 from openai.types.chat.chat_completion_chunk import Choice as StreamChoice, ChoiceDelta
 
-from trustgraph.model.text_completion.openai.llm import Processor
+from trustgraph.model.text_completion.openrouter.llm import Processor
 from trustgraph.base import LlmChunk
-from tests.utils.streaming_assertions import (
-    assert_streaming_chunks_valid,
-    assert_callback_invoked,
-)
 
 
 @pytest.mark.integration
@@ -30,14 +26,26 @@ class TestTextCompletionStreaming:
         def create_streaming_completion(**kwargs):
             """Generator that yields streaming chunks"""
             # Check if streaming is enabled
-            if not kwargs.get('stream', False):
+            if not kwargs.get("stream", False):
                 raise ValueError("Expected streaming mode")
 
             # Simulate OpenAI streaming response
             chunks_text = [
-                "Machine", " learning", " is", " a", " subset",
-                " of", " AI", " that", " enables", " computers",
-                " to", " learn", " from", " data", "."
+                "Machine",
+                " learning",
+                " is",
+                " a",
+                " subset",
+                " of",
+                " AI",
+                " that",
+                " enables",
+                " computers",
+                " to",
+                " learn",
+                " from",
+                " data",
+                ".",
             ]
 
             for text in chunks_text:
@@ -48,12 +56,14 @@ class TestTextCompletionStreaming:
                     choices=[choice],
                     created=1234567890,
                     model="gpt-3.5-turbo",
-                    object="chat.completion.chunk"
+                    object="chat.completion.chunk",
                 )
                 yield chunk
 
         # Return a new generator each time create is called
-        client.chat.completions.create.side_effect = lambda **kwargs: create_streaming_completion(**kwargs)
+        client.chat.completions.create.side_effect = lambda **kwargs: (
+            create_streaming_completion(**kwargs)
+        )
         return client
 
     @pytest.fixture
@@ -73,8 +83,9 @@ class TestTextCompletionStreaming:
         return processor
 
     @pytest.mark.asyncio
-    async def test_text_completion_streaming_basic(self, text_completion_processor_streaming,
-                                                     streaming_chunk_collector):
+    async def test_text_completion_streaming_basic(
+        self, text_completion_processor_streaming, streaming_chunk_collector
+    ):
         """Test basic text completion streaming functionality"""
         # Arrange
         system_prompt = "You are a helpful assistant."
@@ -106,7 +117,9 @@ class TestTextCompletionStreaming:
         assert "machine" in full_text.lower() or "learning" in full_text.lower()
 
     @pytest.mark.asyncio
-    async def test_text_completion_streaming_chunk_structure(self, text_completion_processor_streaming):
+    async def test_text_completion_streaming_chunk_structure(
+        self, text_completion_processor_streaming
+    ):
         """Test that streaming chunks have correct structure"""
         # Arrange
         system_prompt = "You are a helpful assistant."
@@ -132,7 +145,9 @@ class TestTextCompletionStreaming:
         assert final_chunk.model == "gpt-3.5-turbo"
 
     @pytest.mark.asyncio
-    async def test_text_completion_streaming_concatenation(self, text_completion_processor_streaming):
+    async def test_text_completion_streaming_concatenation(
+        self, text_completion_processor_streaming
+    ):
         """Test that chunks concatenate to form complete response"""
         # Arrange
         system_prompt = "You are a helpful assistant."
@@ -152,10 +167,15 @@ class TestTextCompletionStreaming:
         assert len(chunk_texts) > 1  # Should have multiple chunks
 
         # Verify completeness - should be a coherent sentence
-        assert full_text == "Machine learning is a subset of AI that enables computers to learn from data."
+        assert (
+            full_text
+            == "Machine learning is a subset of AI that enables computers to learn from data."
+        )
 
     @pytest.mark.asyncio
-    async def test_text_completion_streaming_final_marker(self, text_completion_processor_streaming):
+    async def test_text_completion_streaming_final_marker(
+        self, text_completion_processor_streaming
+    ):
         """Test that final chunk properly marks end of stream"""
         # Arrange
         system_prompt = "You are a helpful assistant."
@@ -179,7 +199,9 @@ class TestTextCompletionStreaming:
         assert chunks[-1].is_final is True
 
     @pytest.mark.asyncio
-    async def test_text_completion_streaming_model_parameter(self, mock_streaming_openai_client):
+    async def test_text_completion_streaming_model_parameter(
+        self, mock_streaming_openai_client
+    ):
         """Test that model parameter is preserved in streaming"""
         # Arrange
         processor = MagicMock()
@@ -199,17 +221,19 @@ class TestTextCompletionStreaming:
         # Assert
         # Verify OpenAI was called with correct model
         call_args = mock_streaming_openai_client.chat.completions.create.call_args
-        assert call_args.kwargs['model'] == "gpt-4"
-        assert call_args.kwargs['temperature'] == 0.5
-        assert call_args.kwargs['max_completion_tokens'] == 2048
-        assert call_args.kwargs['stream'] is True
+        assert call_args.kwargs["model"] == "gpt-4"
+        assert call_args.kwargs["temperature"] == 0.5
+        assert call_args.kwargs["max_completion_tokens"] == 2048
+        assert call_args.kwargs["stream"] is True
 
         # Verify chunks have correct model
         for chunk in chunks:
             assert chunk.model == "gpt-4"
 
     @pytest.mark.asyncio
-    async def test_text_completion_streaming_temperature_parameter(self, mock_streaming_openai_client):
+    async def test_text_completion_streaming_temperature_parameter(
+        self, mock_streaming_openai_client
+    ):
         """Test that temperature parameter is applied in streaming"""
         # Arrange
         temperatures = [0.0, 0.5, 1.0, 1.5]
@@ -220,8 +244,8 @@ class TestTextCompletionStreaming:
             processor.temperature = temp
             processor.max_output = 1024
             processor.openai = mock_streaming_openai_client
-            processor.generate_content_stream = Processor.generate_content_stream.__get__(
-                processor, Processor
+            processor.generate_content_stream = (
+                Processor.generate_content_stream.__get__(processor, Processor)
             )
 
             # Act
@@ -233,7 +257,7 @@ class TestTextCompletionStreaming:
 
             # Assert
             call_args = mock_streaming_openai_client.chat.completions.create.call_args
-            assert call_args.kwargs['temperature'] == temp
+            assert call_args.kwargs["temperature"] == temp
 
             # Reset mock for next iteration
             mock_streaming_openai_client.reset_mock()
@@ -267,8 +291,11 @@ class TestTextCompletionStreaming:
         assert "Streaming error" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_text_completion_streaming_empty_chunks_filtered(self, mock_streaming_openai_client):
+    async def test_text_completion_streaming_empty_chunks_filtered(
+        self, mock_streaming_openai_client
+    ):
         """Test that empty chunks are handled correctly"""
+
         # Arrange - Mock that returns some empty chunks
         def create_streaming_with_empties(**kwargs):
             chunks_text = ["Hello", "", " world", "", "!"]
@@ -281,11 +308,13 @@ class TestTextCompletionStreaming:
                     choices=[choice],
                     created=1234567890,
                     model="gpt-3.5-turbo",
-                    object="chat.completion.chunk"
+                    object="chat.completion.chunk",
                 )
                 yield chunk
 
-        mock_streaming_openai_client.chat.completions.create.side_effect = lambda **kwargs: create_streaming_with_empties(**kwargs)
+        mock_streaming_openai_client.chat.completions.create.side_effect = (
+            lambda **kwargs: create_streaming_with_empties(**kwargs)
+        )
 
         processor = MagicMock()
         processor.default_model = "gpt-3.5-turbo"
@@ -307,7 +336,9 @@ class TestTextCompletionStreaming:
         assert "".join(c.text for c in text_chunks) == "Hello world!"
 
     @pytest.mark.asyncio
-    async def test_text_completion_streaming_prompt_construction(self, mock_streaming_openai_client):
+    async def test_text_completion_streaming_prompt_construction(
+        self, mock_streaming_openai_client
+    ):
         """Test that system and user prompts are correctly combined for streaming"""
         # Arrange
         processor = MagicMock()
@@ -324,23 +355,27 @@ class TestTextCompletionStreaming:
 
         # Act
         chunks = []
-        async for chunk in processor.generate_content_stream(system_prompt, user_prompt):
+        async for chunk in processor.generate_content_stream(
+            system_prompt, user_prompt
+        ):
             chunks.append(chunk)
             if chunk.is_final:
                 break
 
         # Assert - Verify prompts were combined correctly
         call_args = mock_streaming_openai_client.chat.completions.create.call_args
-        messages = call_args.kwargs['messages']
+        messages = call_args.kwargs["messages"]
         assert len(messages) == 1
 
-        message_content = messages[0]['content'][0]['text']
+        message_content = messages[0]["content"][0]["text"]
         assert system_prompt in message_content
         assert user_prompt in message_content
         assert message_content.startswith(system_prompt)
 
     @pytest.mark.asyncio
-    async def test_text_completion_streaming_chunk_count(self, text_completion_processor_streaming):
+    async def test_text_completion_streaming_chunk_count(
+        self, text_completion_processor_streaming
+    ):
         """Test that streaming produces expected number of chunks"""
         # Arrange
         system_prompt = "You are a helpful assistant."

@@ -12,9 +12,7 @@ requires-python = ">=3.8"
 dependencies = [
     "trustgraph-base>=2.4,<2.5",
     "aiohttp",
-    "anthropic",
     "scylla-driver",
-    "cohere",
     "cryptography",
     "faiss-cpu",
     "falkordb",
@@ -27,10 +25,8 @@ dependencies = [
     "langchain-text-splitters",
     "mcp",
     "minio",
-    "mistralai<2.0.0",
     "neo4j",
     "nltk",
-    "ollama",
     "openai",
     "pinecone[grpc]",
     "prometheus-client",
@@ -73,7 +69,6 @@ doc-embeddings-write-qdrant = "trustgraph.storage.doc_embeddings.qdrant:run"
 document-embeddings = "trustgraph.embeddings.document_embeddings:run"
 document-rag = "trustgraph.retrieval.document_rag:run"
 embeddings-fastembed = "trustgraph.embeddings.fastembed:run"
-embeddings-ollama = "trustgraph.embeddings.ollama:run"
 graph-embeddings-query-milvus = "trustgraph.query.graph_embeddings.milvus:run"
 graph-embeddings-query-pinecone = "trustgraph.query.graph_embeddings.pinecone:run"
 graph-embeddings-query-qdrant = "trustgraph.query.graph_embeddings.qdrant:run"
@@ -100,24 +95,13 @@ row-embeddings = "trustgraph.embeddings.row_embeddings:run"
 row-embeddings-write-qdrant = "trustgraph.storage.row_embeddings.qdrant:run"
 row-embeddings-query-qdrant = "trustgraph.query.row_embeddings.qdrant:run"
 pdf-decoder = "trustgraph.decoding.pdf:run"
-pdf-ocr-mistral = "trustgraph.decoding.mistral_ocr:run"
 prompt-template = "trustgraph.prompt.template:run"
 rev-gateway = "trustgraph.rev_gateway:run"
 run-processing = "trustgraph.processing:run"
 sparql-query = "trustgraph.query.sparql:run"
 structured-query = "trustgraph.retrieval.structured_query:run"
 structured-diag = "trustgraph.retrieval.structured_diag:run"
-text-completion-azure = "trustgraph.model.text_completion.azure:run"
-text-completion-azure-openai = "trustgraph.model.text_completion.azure_openai:run"
-text-completion-claude = "trustgraph.model.text_completion.claude:run"
-text-completion-cohere = "trustgraph.model.text_completion.cohere:run"
-text-completion-llamafile = "trustgraph.model.text_completion.llamafile:run"
-text-completion-lmstudio = "trustgraph.model.text_completion.lmstudio:run"
-text-completion-mistral = "trustgraph.model.text_completion.mistral:run"
-text-completion-ollama = "trustgraph.model.text_completion.ollama:run"
-text-completion-openai = "trustgraph.model.text_completion.openai:run"
-text-completion-tgi = "trustgraph.model.text_completion.tgi:run"
-text-completion-vllm = "trustgraph.model.text_completion.vllm:run"
+text-completion-openrouter = "trustgraph.model.text_completion.openrouter:run"
 triples-query-cassandra = "trustgraph.query.triples.cassandra:run"
 triples-query-falkordb = "trustgraph.query.triples.falkordb:run"
 triples-query-memgraph = "trustgraph.query.triples.memgraph:run"

@@ -12,8 +12,6 @@ wheels:
 	pip3 wheel --no-deps --wheel-dir dist trustgraph/
 	pip3 wheel --no-deps --wheel-dir dist trustgraph-base/
 	pip3 wheel --no-deps --wheel-dir dist trustgraph-flow/
-	pip3 wheel --no-deps --wheel-dir dist trustgraph-vertexai/
-	pip3 wheel --no-deps --wheel-dir dist trustgraph-bedrock/
 	pip3 wheel --no-deps --wheel-dir dist trustgraph-embeddings-hf/
 	pip3 wheel --no-deps --wheel-dir dist trustgraph-cli/
 	pip3 wheel --no-deps --wheel-dir dist trustgraph-ocr/
@@ -25,8 +23,6 @@ packages: update-package-versions
 	cd trustgraph && python -m build --sdist --outdir ../dist/
 	cd trustgraph-base && python -m build --sdist --outdir ../dist/
 	cd trustgraph-flow && python -m build --sdist --outdir ../dist/
-	cd trustgraph-vertexai && python -m build --sdist --outdir ../dist/
-	cd trustgraph-bedrock && python -m build --sdist --outdir ../dist/
 	cd trustgraph-embeddings-hf && python -m build --sdist --outdir ../dist/
 	cd trustgraph-cli && python -m build --sdist --outdir ../dist/
 	cd trustgraph-ocr && python -m build --sdist --outdir ../dist/
@@ -43,8 +39,7 @@ update-package-versions:
 	mkdir -p trustgraph/trustgraph
 	echo __version__ = \"${VERSION}\" > trustgraph-base/trustgraph/base_version.py
 	echo __version__ = \"${VERSION}\" > trustgraph-flow/trustgraph/flow_version.py
-	echo __version__ = \"${VERSION}\" > trustgraph-vertexai/trustgraph/vertexai_version.py
-	echo __version__ = \"${VERSION}\" > trustgraph-bedrock/trustgraph/bedrock_version.py
+
 	echo __version__ = \"${VERSION}\" > trustgraph-embeddings-hf/trustgraph/embeddings_hf_version.py
 	echo __version__ = \"${VERSION}\" > trustgraph-cli/trustgraph/cli_version.py
 	echo __version__ = \"${VERSION}\" > trustgraph-ocr/trustgraph/ocr_version.py
@@ -53,7 +48,6 @@ update-package-versions:
 	echo __version__ = \"${VERSION}\" > trustgraph-mcp/trustgraph/mcp_version.py
 
 containers: container-base container-flow \
-container-bedrock container-vertexai \
 container-hf container-ocr \
 container-unstructured container-mcp
 
@@ -62,8 +56,7 @@ some-containers: container-base container-flow container-unstructured
 push:
 	${DOCKER} push ${CONTAINER_BASE}/trustgraph-base:${VERSION}
 	${DOCKER} push ${CONTAINER_BASE}/trustgraph-flow:${VERSION}
-	${DOCKER} push ${CONTAINER_BASE}/trustgraph-bedrock:${VERSION}
-	${DOCKER} push ${CONTAINER_BASE}/trustgraph-vertexai:${VERSION}
+
 	${DOCKER} push ${CONTAINER_BASE}/trustgraph-hf:${VERSION}
 	${DOCKER} push ${CONTAINER_BASE}/trustgraph-ocr:${VERSION}
 	${DOCKER} push ${CONTAINER_BASE}/trustgraph-unstructured:${VERSION}

@@ -242,16 +242,18 @@ processors:
       <<: *defaults
       id: structured-query
 
-  - class: trustgraph.model.text_completion.openai.Processor
+  - class: trustgraph.model.text_completion.openrouter.Processor
     params:
       <<: *defaults
       id: text-completion
+      model: openai/gpt-4o
       max_output: 8192
       temperature: 0.0
 
-  - class: trustgraph.model.text_completion.openai.Processor
+  - class: trustgraph.model.text_completion.openrouter.Processor
     params:
       <<: *defaults
       id: text-completion-rag
+      model: openai/gpt-4o
       max_output: 8192
       temperature: 0.0

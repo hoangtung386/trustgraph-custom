@@ -110,7 +110,7 @@ api-gateway \
 Processors that talk to external LLMs or APIs read their credentials
 from env vars, same as in the per-container deployment:
 
-- `OPENAI_TOKEN`, `OPENAI_BASE_URL` — for `text-completion` /
+- `OPENROUTER_API_KEY` — for `text-completion` /
   `text-completion-rag`
 
 Export whatever your particular `group.yaml` needs before running.
