@@ -28,10 +28,8 @@ dependencies = [
     "neo4j",
     "nltk",
     "openai",
-    "pinecone[grpc]",
     "prometheus-client",
     "pulsar-client",
-    "pymilvus",
     "pypdf",
     "pyyaml",
     "qdrant-client",
@@ -60,20 +58,12 @@ bootstrap = "trustgraph.bootstrap.bootstrapper:run"
 config-svc = "trustgraph.config.service:run"
 flow-svc = "trustgraph.flow.service:run"
 iam-svc = "trustgraph.iam.service:run"
-doc-embeddings-query-milvus = "trustgraph.query.doc_embeddings.milvus:run"
-doc-embeddings-query-pinecone = "trustgraph.query.doc_embeddings.pinecone:run"
 doc-embeddings-query-qdrant = "trustgraph.query.doc_embeddings.qdrant:run"
-doc-embeddings-write-milvus = "trustgraph.storage.doc_embeddings.milvus:run"
-doc-embeddings-write-pinecone = "trustgraph.storage.doc_embeddings.pinecone:run"
 doc-embeddings-write-qdrant = "trustgraph.storage.doc_embeddings.qdrant:run"
 document-embeddings = "trustgraph.embeddings.document_embeddings:run"
 document-rag = "trustgraph.retrieval.document_rag:run"
 embeddings-fastembed = "trustgraph.embeddings.fastembed:run"
-graph-embeddings-query-milvus = "trustgraph.query.graph_embeddings.milvus:run"
-graph-embeddings-query-pinecone = "trustgraph.query.graph_embeddings.pinecone:run"
 graph-embeddings-query-qdrant = "trustgraph.query.graph_embeddings.qdrant:run"
-graph-embeddings-write-milvus = "trustgraph.storage.graph_embeddings.milvus:run"
-graph-embeddings-write-pinecone = "trustgraph.storage.graph_embeddings.pinecone:run"
 graph-embeddings-write-qdrant = "trustgraph.storage.graph_embeddings.qdrant:run"
 graph-embeddings = "trustgraph.embeddings.graph_embeddings:run"
 graph-rag = "trustgraph.retrieval.graph_rag:run"

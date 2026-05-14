@@ -3,7 +3,6 @@ urllib3
 transformers
 sentence-transformers
 rdflib
-pymilvus
 langchain
 langchain-core
 langchain-huggingface
