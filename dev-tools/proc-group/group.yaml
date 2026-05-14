@@ -4,8 +4,7 @@
 # Out of scope:
 #   - api-gateway       (aiohttp, not AsyncProcessor)
 #   - init-trustgraph   (one-shot init, not a processor)
-#   - document-decoder  (universal-decoder, trustgraph-unstructured package —
-#                        packable but lives in a separate image/package)
+#   - document-decoder  (marker-pdf decoder, trustgraph-ocr package)
 #   - mcp-server        (trustgraph-mcp package, separate image)
 #   - ddg-mcp-server    (third-party image)
 #   - infrastructure    (cassandra, rabbitmq, qdrant, garage, grafana,
@@ -26,12 +25,12 @@ processors:
       <<: *defaults
       id: agent-manager
 
-  - class: trustgraph.chunking.recursive.Processor
+  - class: trustgraph.chunking.semantic.Processor
     params:
       <<: *defaults
       id: chunker
-      chunk_size: 2000
-      chunk_overlap: 50
+      breakpoint_threshold_type: percentile
+      embeddings_model: all-MiniLM-L6-v2
 
   - class: trustgraph.config.service.Processor
     params:
@@ -39,10 +38,11 @@ processors:
       id: config-svc
       cassandra_host: localhost
 
-  - class: trustgraph.decoding.universal.Processor
+  - class: trustgraph.decoding.ocr_marker.Processor
     params:
       <<: *defaults
       id: document-decoder
+      languages: eng
 
   - class: trustgraph.embeddings.document_embeddings.Processor
     params:

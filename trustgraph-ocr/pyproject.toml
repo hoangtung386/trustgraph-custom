@@ -16,6 +16,7 @@ dependencies = [
     "boto3",
     "pdf2image",
     "pytesseract",
+    "marker-pdf",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -27,6 +28,7 @@ Homepage = "https://github.com/trustgraph-ai/trustgraph"
 
 [project.scripts]
 pdf-ocr = "trustgraph.decoding.ocr:run"
+pdf-ocr-marker = "trustgraph.decoding.ocr_marker:run"
 
 [tool.setuptools.packages.find]
 include = ["trustgraph*"]
