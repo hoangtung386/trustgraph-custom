@@ -19,24 +19,102 @@ TrustGraph is an agent runtime platform built around context graphs — structur
 
 ## Local Development
 
+### Prerequisites
+
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) — Python package manager
+
+### Setup
+
 ```bash
-# Create and activate uv virtual environment
+# 1. Create and activate uv virtual environment
 uv venv --python 3.12
 source .venv/bin/activate
 
-# Install all packages in editable mode
+# 2. Install all packages in editable mode
 uv pip install -e trustgraph-base/ -e trustgraph-flow/ \
               -e trustgraph-ocr/ -e trustgraph-unstructured/ \
               -e trustgraph-embeddings-hf/ -e trustgraph-cli/ \
               -e trustgraph-mcp/ -e trustgraph/
 
-# Verify
+# 3. Verify
 pdf-ocr-marker --help
 chunker-semantic --help
 python3 -c "from trustgraph.chunking.semantic.chunker import Processor; print('OK')"
 
 # Deactivate when done
 deactivate
+```
+
+### Configuration
+
+Copy `.env.example` to `.env` and fill in your credentials:
+
+```bash
+cp .env.example .env
+```
+
+### Getting Cloud Credentials
+
+#### OpenRouter
+
+1. Go to [openrouter.ai/keys](https://openrouter.ai/keys)
+2. Sign up / log in
+3. Click **Create Key**
+4. Copy the key (starts with `sk-or-...`)
+
+Paste into `.env`:
+```env
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
+```
+
+#### Qdrant Cloud
+
+1. Go to [cloud.qdrant.io](https://cloud.qdrant.io)
+2. Sign up → **Create Cluster** (free tier available)
+3. After creation, go to cluster **Dashboard**
+4. Copy the **Cluster URL** and **API Key**
+
+Paste into `.env`:
+```env
+QDRANT_HOST=https://your-cluster-url.cloud.qdrant.io
+QDRANT_PORT=6333
+QDRANT_API_KEY=your-qdrant-api-key
+```
+
+#### Cassandra Cloud (DataStax Astra DB)
+
+1. Go to [astra.datastax.com](https://astra.datastax.com)
+2. Sign up → **Create Database** (free 5GB tier)
+3. Choose **Serverless (Cassandra)** as the type
+4. After creation, go to **Connect** tab
+5. Download the **Secure Connect Bundle** (ZIP file)
+6. Click **Generate Token** → copy the **Astra CSV token** (starts with `AstraCS:`)
+
+Paste into `.env`:
+```env
+CASSANDRA_HOST=<your-db-id>-<your-region>.apps.astra.datastax.com
+CASSANDRA_PORT=29042
+CASSANDRA_USERNAME=token
+CASSANDRA_PASSWORD=AstraCS:your-astra-token
+CASSANDRA_SECURE_CONNECT_BUNDLE_PATH=/path/to/secure-connect-bundle.zip
+```
+
+> **Note:** For DataStax Astra, set `CASSANDRA_SECURE_CONNECT_BUNDLE_PATH` to the absolute path of the downloaded ZIP file. Alternatively, place the bundle in the project root and reference it as `./secure-connect-bundle.zip`.
+
+### Verify Cloud Connectivity
+
+```bash
+source .venv/bin/activate
+export $(grep -v '^#' .env | xargs)
+
+# Test OpenRouter
+python3 -c "
+from openai import OpenAI
+c = OpenAI(base_url='https://openrouter.ai/api/v1', api_key='$OPENROUTER_API_KEY')
+r = c.chat.completions.create(model='openai/gpt-4o', messages=[{'role':'user','content':'hi'}])
+print('OpenRouter:', r.choices[0].message.content[:50])
+"
 ```
 
 The platform:
