@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CypherQuery:
     """Generated Cypher query with metadata."""
+
     query: str
     parameters: Dict[str, Any]
     variables: List[str]
@@ -37,62 +38,57 @@ class CypherGenerator:
 
         # Cypher query templates for common patterns
         self.templates = {
-            'simple_node_query': """
+            "simple_node_query": """
 MATCH (n:{node_label})
 RETURN n.name AS name, n.{property} AS {property}
 LIMIT {limit}""",
-
-            'relationship_query': """
+            "relationship_query": """
 MATCH (a:{source_label})-[r:{relationship}]->(b:{target_label})
 WHERE a.name = $source_name
 RETURN b.name AS name, r.{rel_property} AS property""",
-
-            'path_query': """
+            "path_query": """
 MATCH path = (start:{start_label})-[*1..{max_depth}]->(end:{end_label})
 WHERE start.name = $start_name
 RETURN path, length(path) AS path_length
 ORDER BY path_length""",
-
-            'count_query': """
+            "count_query": """
 MATCH (n:{node_label})
 {where_clause}
 RETURN count(n) AS count""",
-
-            'aggregation_query': """
+            "aggregation_query": """
 MATCH (n:{node_label})
 {where_clause}
 RETURN
   count(n) AS count,
   avg(n.{numeric_property}) AS average,
   sum(n.{numeric_property}) AS total""",
-
-            'boolean_query': """
+            "boolean_query": """
 MATCH (a:{source_label})-[:{relationship}]->(b:{target_label})
 WHERE a.name = $source_name AND b.name = $target_name
 RETURN count(*) > 0 AS exists""",
-
-            'hierarchy_query': """
+            "hierarchy_query": """
 MATCH (child:{child_label})-[:SUBCLASS_OF*]->(parent:{parent_label})
 WHERE parent.name = $parent_name
 RETURN child.name AS child_name, parent.name AS parent_name""",
-
-            'property_filter_query': """
+            "property_filter_query": """
 MATCH (n:{node_label})
 WHERE n.{property} {operator} ${property}_value
 RETURN n.name AS name, n.{property} AS {property}
-ORDER BY n.{property}"""
+ORDER BY n.{property}""",
         }
 
-    async def generate_cypher(self,
-                            question_components: QuestionComponents,
-                            ontology_subset: QueryOntologySubset,
-                            database_type: str = "neo4j") -> CypherQuery:
+    async def generate_cypher(
+        self,
+        question_components: QuestionComponents,
+        ontology_subset: QueryOntologySubset,
+        database_type: str = "cassandra",
+    ) -> CypherQuery:
         """Generate Cypher query for a question.
 
         Args:
             question_components: Analyzed question components
             ontology_subset: Relevant ontology subset
-            database_type: Target database (neo4j, memgraph, falkordb)
+            database_type: Target database (cassandra)
 
         Returns:
             Generated Cypher query
@@ -118,10 +114,12 @@ ORDER BY n.{property}"""
         logger.warning("Falling back to simple Cypher pattern")
         return self._generate_fallback_query(question_components, ontology_subset)
 
-    def _try_template_generation(self,
-                               question_components: QuestionComponents,
-                               ontology_subset: QueryOntologySubset,
-                               database_type: str) -> Optional[CypherQuery]:
+    def _try_template_generation(
+        self,
+        question_components: QuestionComponents,
+        ontology_subset: QueryOntologySubset,
+        database_type: str,
+    ) -> Optional[CypherQuery]:
         """Try to generate query using templates.
 
         Args:
@@ -133,54 +131,58 @@ ORDER BY n.{property}"""
             Generated query or None if no template matches
         """
         # Simple node query (What are the animals?)
-        if (question_components.question_type == QuestionType.RETRIEVAL and
-            len(question_components.entities) == 1):
-
+        if (
+            question_components.question_type == QuestionType.RETRIEVAL
+            and len(question_components.entities) == 1
+        ):
             node_label = self._find_matching_node_label(
                 question_components.entities[0], ontology_subset
             )
             if node_label:
-                query = self.templates['simple_node_query'].format(
-                    node_label=node_label,
-                    property='name',
-                    limit=100
+                query = self.templates["simple_node_query"].format(
+                    node_label=node_label, property="name", limit=100
                 )
                 return CypherQuery(
                     query=query,
                     parameters={},
-                    variables=['name'],
+                    variables=["name"],
                     explanation=f"Retrieve all nodes of type {node_label}",
                     complexity_score=0.2,
-                    database_hints=self._get_database_hints(database_type, 'simple')
+                    database_hints=self._get_database_hints(database_type, "simple"),
                 )
 
         # Count query (How many animals are there?)
-        if (question_components.question_type == QuestionType.AGGREGATION and
-            'count' in question_components.aggregations):
-
+        if (
+            question_components.question_type == QuestionType.AGGREGATION
+            and "count" in question_components.aggregations
+        ):
             node_label = self._find_matching_node_label(
-                question_components.entities[0] if question_components.entities else 'Entity',
-                ontology_subset
+                question_components.entities[0]
+                if question_components.entities
+                else "Entity",
+                ontology_subset,
             )
             if node_label:
                 where_clause = self._build_where_clause(question_components)
-                query = self.templates['count_query'].format(
-                    node_label=node_label,
-                    where_clause=where_clause
+                query = self.templates["count_query"].format(
+                    node_label=node_label, where_clause=where_clause
                 )
                 return CypherQuery(
                     query=query,
                     parameters=self._extract_parameters(question_components),
-                    variables=['count'],
+                    variables=["count"],
                     explanation=f"Count nodes of type {node_label}",
                     complexity_score=0.3,
-                    database_hints=self._get_database_hints(database_type, 'aggregation')
+                    database_hints=self._get_database_hints(
+                        database_type, "aggregation"
+                    ),
                 )
 
         # Relationship query (Which documents were authored by John Smith?)
-        if (question_components.question_type == QuestionType.RETRIEVAL and
-            len(question_components.entities) >= 2):
-
+        if (
+            question_components.question_type == QuestionType.RETRIEVAL
+            and len(question_components.entities) >= 2
+        ):
             source_label = self._find_matching_node_label(
                 question_components.entities[1], ontology_subset
             )
@@ -192,19 +194,21 @@ ORDER BY n.{property}"""
             )
 
             if source_label and target_label and relationship:
-                query = self.templates['relationship_query'].format(
+                query = self.templates["relationship_query"].format(
                     source_label=source_label,
                     target_label=target_label,
                     relationship=relationship,
-                    rel_property='name'
+                    rel_property="name",
                 )
                 return CypherQuery(
                     query=query,
-                    parameters={'source_name': question_components.entities[1]},
-                    variables=['name'],
+                    parameters={"source_name": question_components.entities[1]},
+                    variables=["name"],
                     explanation=f"Find {target_label} related to {source_label} via {relationship}",
                     complexity_score=0.4,
-                    database_hints=self._get_database_hints(database_type, 'relationship')
+                    database_hints=self._get_database_hints(
+                        database_type, "relationship"
+                    ),
                 )
 
         # Boolean query (Is X related to Y?)
@@ -221,29 +225,33 @@ ORDER BY n.{property}"""
                 )
 
                 if source_label and target_label and relationship:
-                    query = self.templates['boolean_query'].format(
+                    query = self.templates["boolean_query"].format(
                         source_label=source_label,
                         target_label=target_label,
-                        relationship=relationship
+                        relationship=relationship,
                     )
                     return CypherQuery(
                         query=query,
                         parameters={
-                            'source_name': question_components.entities[0],
-                            'target_name': question_components.entities[1]
+                            "source_name": question_components.entities[0],
+                            "target_name": question_components.entities[1],
                         },
-                        variables=['exists'],
+                        variables=["exists"],
                         explanation="Boolean check for relationship existence",
                         complexity_score=0.3,
-                        database_hints=self._get_database_hints(database_type, 'boolean')
+                        database_hints=self._get_database_hints(
+                            database_type, "boolean"
+                        ),
                     )
 
         return None
 
-    async def _generate_with_llm(self,
-                               question_components: QuestionComponents,
-                               ontology_subset: QueryOntologySubset,
-                               database_type: str) -> Optional[CypherQuery]:
+    async def _generate_with_llm(
+        self,
+        question_components: QuestionComponents,
+        ontology_subset: QueryOntologySubset,
+        database_type: str,
+    ) -> Optional[CypherQuery]:
         """Generate Cypher using LLM.
 
         Args:
@@ -261,15 +269,19 @@ ORDER BY n.{property}"""
             response = await self.prompt_service.generate_cypher(prompt=prompt)
 
             if response and isinstance(response, dict):
-                query = response.get('query', '').strip()
-                if query.upper().startswith(('MATCH', 'CREATE', 'MERGE', 'DELETE', 'RETURN')):
+                query = response.get("query", "").strip()
+                if query.upper().startswith(
+                    ("MATCH", "CREATE", "MERGE", "DELETE", "RETURN")
+                ):
                     return CypherQuery(
                         query=query,
-                        parameters=response.get('parameters', {}),
+                        parameters=response.get("parameters", {}),
                         variables=self._extract_variables(query),
-                        explanation=response.get('explanation', 'Generated by LLM'),
+                        explanation=response.get("explanation", "Generated by LLM"),
                         complexity_score=self._calculate_complexity(query),
-                        database_hints=self._get_database_hints(database_type, 'complex')
+                        database_hints=self._get_database_hints(
+                            database_type, "complex"
+                        ),
                     )
 
         except Exception as e:
@@ -277,10 +289,12 @@ ORDER BY n.{property}"""
 
         return None
 
-    def _build_cypher_prompt(self,
-                           question_components: QuestionComponents,
-                           ontology_subset: QueryOntologySubset,
-                           database_type: str) -> str:
+    def _build_cypher_prompt(
+        self,
+        question_components: QuestionComponents,
+        ontology_subset: QueryOntologySubset,
+        database_type: str,
+    ) -> str:
         """Build prompt for LLM Cypher generation.
 
         Args:
@@ -294,8 +308,7 @@ ORDER BY n.{property}"""
         # Format ontology elements as node labels and relationships
         node_labels = self._format_node_labels(ontology_subset.classes)
         relationships = self._format_relationships(
-            ontology_subset.object_properties,
-            ontology_subset.datatype_properties
+            ontology_subset.object_properties, ontology_subset.datatype_properties
         )
 
         prompt = f"""Generate a Cypher query for the following question using the provided ontology.
@@ -321,8 +334,8 @@ RULES:
 QUERY TYPE HINTS:
 - Question type: {question_components.question_type.value}
 - Expected answer: {question_components.expected_answer_type}
-- Entities mentioned: {', '.join(question_components.entities)}
-- Aggregations: {', '.join(question_components.aggregations)}
+- Entities mentioned: {", ".join(question_components.entities)}
+- Aggregations: {", ".join(question_components.aggregations)}
 
 DATABASE-SPECIFIC OPTIMIZATIONS:
 {self._get_database_specific_hints(database_type)}
@@ -331,9 +344,11 @@ Generate a complete Cypher query with parameters:"""
 
         return prompt
 
-    def _generate_fallback_query(self,
-                               question_components: QuestionComponents,
-                               ontology_subset: QueryOntologySubset) -> CypherQuery:
+    def _generate_fallback_query(
+        self,
+        question_components: QuestionComponents,
+        ontology_subset: QueryOntologySubset,
+    ) -> CypherQuery:
         """Generate simple fallback query.
 
         Args:
@@ -344,7 +359,11 @@ Generate a complete Cypher query with parameters:"""
             Basic Cypher query
         """
         # Very basic MATCH query
-        first_class = list(ontology_subset.classes.keys())[0] if ontology_subset.classes else 'Entity'
+        first_class = (
+            list(ontology_subset.classes.keys())[0]
+            if ontology_subset.classes
+            else "Entity"
+        )
 
         query = f"""MATCH (n:{first_class})
 WHERE n.name CONTAINS $keyword
@@ -353,13 +372,19 @@ LIMIT 10"""
 
         return CypherQuery(
             query=query,
-            parameters={'keyword': question_components.keywords[0] if question_components.keywords else 'entity'},
-            variables=['name', 'types'],
+            parameters={
+                "keyword": question_components.keywords[0]
+                if question_components.keywords
+                else "entity"
+            },
+            variables=["name", "types"],
             explanation="Fallback query for basic pattern matching",
-            complexity_score=0.1
+            complexity_score=0.1,
         )
 
-    def _find_matching_node_label(self, entity: str, ontology_subset: QueryOntologySubset) -> Optional[str]:
+    def _find_matching_node_label(
+        self, entity: str, ontology_subset: QueryOntologySubset
+    ) -> Optional[str]:
         """Find matching node label in ontology subset.
 
         Args:
@@ -378,10 +403,10 @@ LIMIT 10"""
 
         # Label match
         for class_id, class_def in ontology_subset.classes.items():
-            labels = class_def.get('labels', [])
+            labels = class_def.get("labels", [])
             for label in labels:
                 if isinstance(label, dict):
-                    label_value = label.get('value', '').lower()
+                    label_value = label.get("value", "").lower()
                     if label_value == entity_lower:
                         return class_id
 
@@ -392,9 +417,11 @@ LIMIT 10"""
 
         return None
 
-    def _find_matching_relationship(self,
-                                  question_components: QuestionComponents,
-                                  ontology_subset: QueryOntologySubset) -> Optional[str]:
+    def _find_matching_relationship(
+        self,
+        question_components: QuestionComponents,
+        ontology_subset: QueryOntologySubset,
+    ) -> Optional[str]:
         """Find matching relationship type.
 
         Args:
@@ -411,18 +438,18 @@ LIMIT 10"""
             # Check object properties
             for prop_id in ontology_subset.object_properties:
                 if keyword_lower in prop_id.lower() or prop_id.lower() in keyword_lower:
-                    return prop_id.upper().replace('-', '_')
+                    return prop_id.upper().replace("-", "_")
 
         # Common relationship mappings
         relationship_mappings = {
-            'author': 'AUTHORED_BY',
-            'created': 'CREATED_BY',
-            'owns': 'OWNS',
-            'has': 'HAS',
-            'contains': 'CONTAINS',
-            'parent': 'PARENT_OF',
-            'child': 'CHILD_OF',
-            'related': 'RELATED_TO'
+            "author": "AUTHORED_BY",
+            "created": "CREATED_BY",
+            "owns": "OWNS",
+            "has": "HAS",
+            "contains": "CONTAINS",
+            "parent": "PARENT_OF",
+            "child": "CHILD_OF",
+            "related": "RELATED_TO",
         }
 
         for keyword in question_components.keywords:
@@ -430,7 +457,7 @@ LIMIT 10"""
                 return relationship_mappings[keyword.lower()]
 
         # Default relationship
-        return 'RELATED_TO'
+        return "RELATED_TO"
 
     def _build_where_clause(self, question_components: QuestionComponents) -> str:
         """Build WHERE clause for Cypher query.
@@ -444,13 +471,14 @@ LIMIT 10"""
         conditions = []
 
         for constraint in question_components.constraints:
-            if 'greater than' in constraint.lower():
+            if "greater than" in constraint.lower():
                 import re
-                numbers = re.findall(r'\d+', constraint)
+
+                numbers = re.findall(r"\d+", constraint)
                 if numbers:
                     conditions.append(f"n.value > {numbers[0]}")
-            elif 'less than' in constraint.lower():
-                numbers = re.findall(r'\d+', constraint)
+            elif "less than" in constraint.lower():
+                numbers = re.findall(r"\d+", constraint)
                 if numbers:
                     conditions.append(f"n.value < {numbers[0]}")
 
@@ -458,7 +486,9 @@ LIMIT 10"""
             return f"WHERE {' AND '.join(conditions)}"
         return ""
 
-    def _extract_parameters(self, question_components: QuestionComponents) -> Dict[str, Any]:
+    def _extract_parameters(
+        self, question_components: QuestionComponents
+    ) -> Dict[str, Any]:
         """Extract parameters from question components.
 
         Args:
@@ -471,10 +501,11 @@ LIMIT 10"""
 
         # Extract numeric values
         import re
+
         for constraint in question_components.constraints:
-            numbers = re.findall(r'\d+', constraint)
+            numbers = re.findall(r"\d+", constraint)
             for i, number in enumerate(numbers):
-                parameters[f'value_{i}'] = int(number)
+                parameters[f"value_{i}"] = int(number)
 
         return parameters
 
@@ -492,14 +523,14 @@ LIMIT 10"""
 
         lines = []
         for class_id, definition in classes.items():
-            comment = definition.get('comment', '')
+            comment = definition.get("comment", "")
             lines.append(f"- :{class_id} - {comment}")
 
-        return '\n'.join(lines)
+        return "\n".join(lines)
 
-    def _format_relationships(self,
-                            object_props: Dict[str, Any],
-                            datatype_props: Dict[str, Any]) -> str:
+    def _format_relationships(
+        self, object_props: Dict[str, Any], datatype_props: Dict[str, Any]
+    ) -> str:
         """Format properties as relationships for prompt.
 
         Args:
@@ -512,13 +543,13 @@ LIMIT 10"""
         lines = []
 
         for prop_id, definition in object_props.items():
-            domain = definition.get('domain', 'Any')
-            range_val = definition.get('range', 'Any')
-            comment = definition.get('comment', '')
-            rel_type = prop_id.upper().replace('-', '_')
+            domain = definition.get("domain", "Any")
+            range_val = definition.get("range", "Any")
+            comment = definition.get("comment", "")
+            rel_type = prop_id.upper().replace("-", "_")
             lines.append(f"- :{rel_type} ({domain} -> {range_val}) - {comment}")
 
-        return '\n'.join(lines) if lines else "None"
+        return "\n".join(lines) if lines else "None"
 
     def _extract_variables(self, query: str) -> List[str]:
         """Extract variables from Cypher query.
@@ -530,11 +561,14 @@ LIMIT 10"""
             List of variable names
         """
         import re
+
         # Extract RETURN clause variables
-        return_match = re.search(r'RETURN\s+(.+?)(?:ORDER|LIMIT|$)', query, re.IGNORECASE | re.DOTALL)
+        return_match = re.search(
+            r"RETURN\s+(.+?)(?:ORDER|LIMIT|$)", query, re.IGNORECASE | re.DOTALL
+        )
         if return_match:
             return_clause = return_match.group(1)
-            variables = re.findall(r'(\w+)(?:\s+AS\s+(\w+))?', return_clause)
+            variables = re.findall(r"(\w+)(?:\s+AS\s+(\w+))?", return_clause)
             return [var[1] if var[1] else var[0] for var in variables]
         return []
 
@@ -551,27 +585,29 @@ LIMIT 10"""
         query_upper = query.upper()
 
         # Count different Cypher features
-        if 'JOIN' in query_upper or 'UNION' in query_upper:
+        if "JOIN" in query_upper or "UNION" in query_upper:
             complexity += 0.3
-        if 'WHERE' in query_upper:
+        if "WHERE" in query_upper:
             complexity += 0.2
-        if 'OPTIONAL' in query_upper:
+        if "OPTIONAL" in query_upper:
             complexity += 0.1
-        if 'ORDER BY' in query_upper:
+        if "ORDER BY" in query_upper:
             complexity += 0.1
-        if '*' in query:  # Variable length paths
+        if "*" in query:  # Variable length paths
             complexity += 0.2
-        if any(agg in query_upper for agg in ['COUNT', 'SUM', 'AVG', 'MAX', 'MIN']):
+        if any(agg in query_upper for agg in ["COUNT", "SUM", "AVG", "MAX", "MIN"]):
             complexity += 0.2
 
         # Count path length
-        path_matches = re.findall(r'\[.*?\*(\d+)\.\.(\d+).*?\]', query)
+        path_matches = re.findall(r"\[.*?\*(\d+)\.\.(\d+).*?\]", query)
         for start, end in path_matches:
             complexity += (int(end) - int(start)) * 0.05
 
         return min(complexity, 1.0)
 
-    def _get_database_hints(self, database_type: str, query_category: str) -> Dict[str, Any]:
+    def _get_database_hints(
+        self, database_type: str, query_category: str
+    ) -> Dict[str, Any]:
         """Get database-specific optimization hints.
 
         Args:
@@ -582,24 +618,6 @@ LIMIT 10"""
             Optimization hints
         """
         hints = {}
-
-        if database_type == "neo4j":
-            hints.update({
-                'use_index': True,
-                'explain_plan': 'EXPLAIN',
-                'profile_query': 'PROFILE'
-            })
-        elif database_type == "memgraph":
-            hints.update({
-                'use_index': True,
-                'explain_plan': 'EXPLAIN',
-                'memory_limit': '1GB'
-            })
-        elif database_type == "falkordb":
-            hints.update({
-                'use_index': False,  # Redis-based, different indexing
-                'cache_result': True
-            })
 
         return hints
 
@@ -612,17 +630,4 @@ LIMIT 10"""
         Returns:
             Hints as formatted string
         """
-        if database_type == "neo4j":
-            return """- Use USING INDEX hints for large datasets
-- Consider PROFILE for query optimization
-- Prefer MERGE over CREATE when appropriate"""
-        elif database_type == "memgraph":
-            return """- Leverage in-memory processing advantages
-- Use streaming for large result sets
-- Consider query parallelization"""
-        elif database_type == "falkordb":
-            return """- Optimize for Redis memory constraints
-- Use simple patterns for best performance
-- Leverage Redis data structures when possible"""
-        else:
-            return "- Use standard Cypher optimization patterns"
+        return "- Use standard Cypher optimization patterns"

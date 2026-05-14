@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class QueryRequest:
     """Query request from workspace."""
+
     question: str
     context: Optional[str] = None
     ontology_hint: Optional[str] = None
@@ -38,6 +39,7 @@ class QueryRequest:
 @dataclass
 class QueryResponse:
     """Complete query response."""
+
     answer: str
     confidence: float
     execution_time: float
@@ -83,36 +85,35 @@ class OntoRAGQueryService(FlowProcessor):
         await super().init()
 
         # Initialize configuration store
-        self.config_store = ConfigTableStore(self.config.get('config_store', {}))
+        self.config_store = ConfigTableStore(self.config.get("config_store", {}))
 
         # Initialize ontology components
         self.ontology_loader = OntologyLoader(self.config_store)
 
         # Initialize vector store
-        vector_config = self.config.get('vector_store', {})
+        vector_config = self.config.get("vector_store", {})
         self.vector_store = InMemoryVectorStore.create(
-            store_type=vector_config.get('type', 'numpy'),
-            dimension=vector_config.get('dimension', 384),
-            similarity_threshold=vector_config.get('similarity_threshold', 0.7)
+            store_type=vector_config.get("type", "numpy"),
+            dimension=vector_config.get("dimension", 384),
+            similarity_threshold=vector_config.get("similarity_threshold", 0.7),
         )
 
         # Initialize question analyzer
-        analyzer_config = self.config.get('question_analyzer', {})
+        analyzer_config = self.config.get("question_analyzer", {})
         self.question_analyzer = QuestionAnalyzer(
-            prompt_service=self.prompt_service,
-            config=analyzer_config
+            prompt_service=self.prompt_service, config=analyzer_config
         )
 
         # Initialize ontology matcher
-        matcher_config = self.config.get('ontology_matcher', {})
+        matcher_config = self.config.get("ontology_matcher", {})
         self.ontology_matcher = OntologyMatcher(
             vector_store=self.vector_store,
             embedding_service=self.embedding_service,
-            config=matcher_config
+            config=matcher_config,
         )
 
         # Initialize backend router
-        router_config = self.config.get('backend_router', {})
+        router_config = self.config.get("backend_router", {})
         self.backend_router = BackendRouter(router_config)
 
         # Initialize query generators
@@ -120,16 +121,19 @@ class OntoRAGQueryService(FlowProcessor):
         self.cypher_generator = CypherGenerator(prompt_service=self.prompt_service)
 
         # Initialize executors
-        sparql_config = self.config.get('sparql_executor', {})
+        sparql_config = self.config.get("sparql_executor", {})
         if self.backend_router.is_backend_enabled(BackendType.CASSANDRA):
-            cassandra_config = self.backend_router.get_backend_config(BackendType.CASSANDRA)
+            cassandra_config = self.backend_router.get_backend_config(
+                BackendType.CASSANDRA
+            )
             if cassandra_config:
                 self.sparql_engine = SPARQLCassandraEngine(cassandra_config)
                 await self.sparql_engine.initialize()
 
-        cypher_config = self.config.get('cypher_executor', {})
+        cypher_config = self.config.get("cypher_executor", {})
         enabled_graph_backends = [
-            bt for bt in [BackendType.NEO4J, BackendType.MEMGRAPH, BackendType.FALKORDB]
+            bt
+            for bt in [BackendType.NEO4J, BackendType.MEMGRAPH, BackendType.FALKORDB]
             if self.backend_router.is_backend_enabled(bt)
         ]
         if enabled_graph_backends:
@@ -174,7 +178,7 @@ class OntoRAGQueryService(FlowProcessor):
             logger.debug(f"Routed to {query_route.backend_type.value} backend")
 
             # Step 4: Generate and execute query
-            if query_route.query_language == 'sparql':
+            if query_route.query_language == "sparql":
                 query_results = await self._execute_sparql_path(
                     question_components, ontology_subsets, query_route
                 )
@@ -186,9 +190,9 @@ class OntoRAGQueryService(FlowProcessor):
             # Step 5: Generate natural language answer
             generated_answer = await self.answer_generator.generate_answer(
                 question_components,
-                query_results['raw_results'],
+                query_results["raw_results"],
                 ontology_subsets[0] if ontology_subsets else None,
-                query_route.backend_type.value
+                query_route.backend_type.value,
             )
 
             # Build response
@@ -196,22 +200,24 @@ class OntoRAGQueryService(FlowProcessor):
 
             response = QueryResponse(
                 answer=generated_answer.answer,
-                confidence=min(query_route.confidence, generated_answer.metadata.confidence),
+                confidence=min(
+                    query_route.confidence, generated_answer.metadata.confidence
+                ),
                 execution_time=execution_time,
                 question_analysis=question_components,
                 ontology_subsets=ontology_subsets,
                 query_route=query_route,
-                generated_query=query_results['generated_query'],
-                raw_results=query_results['raw_results'],
+                generated_query=query_results["generated_query"],
+                raw_results=query_results["raw_results"],
                 supporting_facts=generated_answer.supporting_facts,
                 metadata={
-                    'backend_used': query_route.backend_type.value,
-                    'query_language': query_route.query_language,
-                    'ontology_count': len(ontology_subsets),
-                    'result_count': generated_answer.metadata.result_count,
-                    'routing_reasoning': query_route.reasoning,
-                    'generation_time': generated_answer.generation_time
-                }
+                    "backend_used": query_route.backend_type.value,
+                    "query_language": query_route.query_language,
+                    "ontology_count": len(ontology_subsets),
+                    "result_count": generated_answer.metadata.result_count,
+                    "routing_reasoning": query_route.reasoning,
+                    "generation_time": generated_answer.generation_time,
+                },
             )
 
             logger.info(f"Query processed successfully in {execution_time:.2f}s")
@@ -230,20 +236,26 @@ class OntoRAGQueryService(FlowProcessor):
                     original_question=request.question,
                     normalized_question=request.question,
                     question_type=None,
-                    entities=[], keywords=[], relationships=[], constraints=[],
-                    aggregations=[], expected_answer_type="unknown"
+                    entities=[],
+                    keywords=[],
+                    relationships=[],
+                    constraints=[],
+                    aggregations=[],
+                    expected_answer_type="unknown",
                 ),
                 ontology_subsets=[],
                 query_route=None,
                 generated_query=None,
                 raw_results=None,
                 supporting_facts=[],
-                metadata={'error': str(e), 'execution_time': execution_time}
+                metadata={"error": str(e), "execution_time": execution_time},
             )
 
-    async def _load_and_match_ontologies(self,
-                                       question_components: QuestionComponents,
-                                       ontology_hint: Optional[str] = None) -> List[QueryOntologySubset]:
+    async def _load_and_match_ontologies(
+        self,
+        question_components: QuestionComponents,
+        ontology_hint: Optional[str] = None,
+    ) -> List[QueryOntologySubset]:
         """Load ontologies and find relevant subsets.
 
         Args:
@@ -260,9 +272,13 @@ class OntoRAGQueryService(FlowProcessor):
                 ontologies = [await self.ontology_loader.load_ontology(ontology_hint)]
             else:
                 # Load all available ontologies
-                available_ontologies = await self.ontology_loader.list_available_ontologies()
+                available_ontologies = (
+                    await self.ontology_loader.list_available_ontologies()
+                )
                 ontologies = []
-                for ontology_id in available_ontologies[:5]:  # Limit to 5 for performance
+                for ontology_id in available_ontologies[
+                    :5
+                ]:  # Limit to 5 for performance
                     try:
                         ontology = await self.ontology_loader.load_ontology(ontology_id)
                         ontologies.append(ontology)
@@ -279,7 +295,11 @@ class OntoRAGQueryService(FlowProcessor):
                 subset = await self.ontology_matcher.select_relevant_subset(
                     question_components, ontology
                 )
-                if subset and (subset.classes or subset.object_properties or subset.datatype_properties):
+                if subset and (
+                    subset.classes
+                    or subset.object_properties
+                    or subset.datatype_properties
+                ):
                     ontology_subsets.append(subset)
 
             return ontology_subsets
@@ -288,10 +308,12 @@ class OntoRAGQueryService(FlowProcessor):
             logger.error(f"Failed to load and match ontologies: {e}")
             return []
 
-    async def _execute_sparql_path(self,
-                                 question_components: QuestionComponents,
-                                 ontology_subsets: List[QueryOntologySubset],
-                                 query_route: QueryRoute) -> Dict[str, Any]:
+    async def _execute_sparql_path(
+        self,
+        question_components: QuestionComponents,
+        ontology_subsets: List[QueryOntologySubset],
+        query_route: QueryRoute,
+    ) -> Dict[str, Any]:
         """Execute SPARQL query path.
 
         Args:
@@ -316,15 +338,14 @@ class OntoRAGQueryService(FlowProcessor):
         # Execute query
         sparql_results = self.sparql_engine.execute_sparql(sparql_query.query)
 
-        return {
-            'generated_query': sparql_query,
-            'raw_results': sparql_results
-        }
+        return {"generated_query": sparql_query, "raw_results": sparql_results}
 
-    async def _execute_cypher_path(self,
-                                 question_components: QuestionComponents,
-                                 ontology_subsets: List[QueryOntologySubset],
-                                 query_route: QueryRoute) -> Dict[str, Any]:
+    async def _execute_cypher_path(
+        self,
+        question_components: QuestionComponents,
+        ontology_subsets: List[QueryOntologySubset],
+        query_route: QueryRoute,
+    ) -> Dict[str, Any]:
         """Execute Cypher query path.
 
         Args:
@@ -352,10 +373,7 @@ class OntoRAGQueryService(FlowProcessor):
             cypher_query.query, database_type=database_type
         )
 
-        return {
-            'generated_query': cypher_query,
-            'raw_results': cypher_results
-        }
+        return {"generated_query": cypher_query, "raw_results": cypher_results}
 
     async def get_supported_backends(self) -> List[str]:
         """Get list of supported and enabled backends.
@@ -382,40 +400,42 @@ class OntoRAGQueryService(FlowProcessor):
             Health status of all components
         """
         health = {
-            'service': 'healthy',
-            'components': {},
-            'backends': {},
-            'ontologies': {}
+            "service": "healthy",
+            "components": {},
+            "backends": {},
+            "ontologies": {},
         }
 
         try:
             # Check ontology loader
             if self.ontology_loader:
                 ontologies = await self.ontology_loader.list_available_ontologies()
-                health['components']['ontology_loader'] = 'healthy'
-                health['ontologies']['count'] = len(ontologies)
+                health["components"]["ontology_loader"] = "healthy"
+                health["ontologies"]["count"] = len(ontologies)
             else:
-                health['components']['ontology_loader'] = 'not_initialized'
+                health["components"]["ontology_loader"] = "not_initialized"
 
             # Check vector store
             if self.vector_store:
-                health['components']['vector_store'] = 'healthy'
-                health['components']['vector_store_type'] = type(self.vector_store).__name__
+                health["components"]["vector_store"] = "healthy"
+                health["components"]["vector_store_type"] = type(
+                    self.vector_store
+                ).__name__
             else:
-                health['components']['vector_store'] = 'not_initialized'
+                health["components"]["vector_store"] = "not_initialized"
 
             # Check backends
             for backend_type in self.backend_router.get_available_backends():
                 if backend_type == BackendType.CASSANDRA and self.sparql_engine:
-                    health['backends']['cassandra'] = 'healthy'
-                elif backend_type in [BackendType.NEO4J, BackendType.MEMGRAPH, BackendType.FALKORDB] and self.cypher_executor:
-                    health['backends'][backend_type.value] = 'healthy'
+                    health["backends"]["cassandra"] = "healthy"
                 else:
-                    health['backends'][backend_type.value] = 'configured_but_not_initialized'
+                    health["backends"][backend_type.value] = (
+                        "configured_but_not_initialized"
+                    )
 
         except Exception as e:
-            health['service'] = 'degraded'
-            health['error'] = str(e)
+            health["service"] = "degraded"
+            health["error"] = str(e)
 
         return health
 

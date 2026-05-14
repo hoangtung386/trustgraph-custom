@@ -16,15 +16,14 @@ logger = logging.getLogger(__name__)
 
 class BackendType(Enum):
     """Supported backend types."""
+
     CASSANDRA = "cassandra"
-    NEO4J = "neo4j"
-    MEMGRAPH = "memgraph"
-    FALKORDB = "falkordb"
 
 
 @dataclass
 class BackendConfig:
     """Configuration for a backend."""
+
     type: BackendType
     priority: int = 0
     enabled: bool = True
@@ -34,6 +33,7 @@ class BackendConfig:
 @dataclass
 class QueryRoute:
     """Routing decision for a query."""
+
     backend_type: BackendType
     query_language: str  # 'sparql' or 'cypher'
     confidence: float
@@ -51,10 +51,12 @@ class BackendRouter:
         """
         self.config = config
         self.backends = self._parse_backend_config(config)
-        self.routing_strategy = config.get('routing_strategy', 'priority')
-        self.enable_fallback = config.get('enable_fallback', True)
+        self.routing_strategy = config.get("routing_strategy", "priority")
+        self.enable_fallback = config.get("enable_fallback", True)
 
-    def _parse_backend_config(self, config: Dict[str, Any]) -> Dict[BackendType, BackendConfig]:
+    def _parse_backend_config(
+        self, config: Dict[str, Any]
+    ) -> Dict[BackendType, BackendConfig]:
         """Parse backend configuration.
 
         Args:
@@ -66,7 +68,7 @@ class BackendRouter:
         backends = {}
 
         # Parse primary backend
-        primary = config.get('primary', 'cassandra')
+        primary = config.get("primary", "cassandra")
         if primary:
             try:
                 backend_type = BackendType(primary)
@@ -74,13 +76,13 @@ class BackendRouter:
                     type=backend_type,
                     priority=100,
                     enabled=True,
-                    config=config.get(primary, {})
+                    config=config.get(primary, {}),
                 )
             except ValueError:
                 logger.warning(f"Unknown primary backend type: {primary}")
 
         # Parse fallback backends
-        fallbacks = config.get('fallback', [])
+        fallbacks = config.get("fallback", [])
         for i, fallback in enumerate(fallbacks):
             try:
                 backend_type = BackendType(fallback)
@@ -88,16 +90,18 @@ class BackendRouter:
                     type=backend_type,
                     priority=50 - i * 10,  # Decreasing priority
                     enabled=True,
-                    config=config.get(fallback, {})
+                    config=config.get(fallback, {}),
                 )
             except ValueError:
                 logger.warning(f"Unknown fallback backend type: {fallback}")
 
         return backends
 
-    def route_query(self,
-                   question_components: QuestionComponents,
-                   ontology_subsets: List[QueryOntologySubset]) -> QueryRoute:
+    def route_query(
+        self,
+        question_components: QuestionComponents,
+        ontology_subsets: List[QueryOntologySubset],
+    ) -> QueryRoute:
         """Route a query to the best backend.
 
         Args:
@@ -107,11 +111,11 @@ class BackendRouter:
         Returns:
             QueryRoute with routing decision
         """
-        if self.routing_strategy == 'priority':
+        if self.routing_strategy == "priority":
             return self._route_by_priority()
-        elif self.routing_strategy == 'adaptive':
+        elif self.routing_strategy == "adaptive":
             return self._route_adaptive(question_components, ontology_subsets)
-        elif self.routing_strategy == 'round_robin':
+        elif self.routing_strategy == "round_robin":
             return self._route_round_robin()
         else:
             return self._route_by_priority()
@@ -135,18 +139,20 @@ class BackendRouter:
             raise RuntimeError("No enabled backends available")
 
         # Determine query language
-        query_language = 'sparql' if best_backend == BackendType.CASSANDRA else 'cypher'
+        query_language = "sparql" if best_backend == BackendType.CASSANDRA else "cypher"
 
         return QueryRoute(
             backend_type=best_backend,
             query_language=query_language,
             confidence=1.0,
-            reasoning=f"Priority routing to {best_backend.value}"
+            reasoning=f"Priority routing to {best_backend.value}",
         )
 
-    def _route_adaptive(self,
-                       question_components: QuestionComponents,
-                       ontology_subsets: List[QueryOntologySubset]) -> QueryRoute:
+    def _route_adaptive(
+        self,
+        question_components: QuestionComponents,
+        ontology_subsets: List[QueryOntologySubset],
+    ) -> QueryRoute:
         """Route based on question characteristics and ontology complexity.
 
         Args:
@@ -175,19 +181,21 @@ class BackendRouter:
         best_score = scores[best_backend]
 
         # Determine query language
-        query_language = 'sparql' if best_backend == BackendType.CASSANDRA else 'cypher'
+        query_language = "sparql" if best_backend == BackendType.CASSANDRA else "cypher"
 
         return QueryRoute(
             backend_type=best_backend,
             query_language=query_language,
             confidence=best_score,
-            reasoning=f"Adaptive routing: {best_backend.value} scored {best_score:.2f}"
+            reasoning=f"Adaptive routing: {best_backend.value} scored {best_score:.2f}",
         )
 
-    def _calculate_backend_score(self,
-                                backend_type: BackendType,
-                                question_components: QuestionComponents,
-                                ontology_subsets: List[QueryOntologySubset]) -> float:
+    def _calculate_backend_score(
+        self,
+        backend_type: BackendType,
+        question_components: QuestionComponents,
+        ontology_subsets: List[QueryOntologySubset],
+    ) -> float:
         """Calculate score for a backend based on query characteristics.
 
         Args:
@@ -207,14 +215,14 @@ class BackendRouter:
         # Question type preferences
         if backend_type == BackendType.CASSANDRA:
             # SPARQL is good for hierarchical and complex reasoning
-            if question_components.question_type.value in ['factual', 'aggregation']:
+            if question_components.question_type.value in ["factual", "aggregation"]:
                 score += 0.3
             # Good for ontology-heavy queries
             if len(ontology_subsets) > 1:
                 score += 0.2
         else:
             # Cypher is good for graph traversal and relationships
-            if question_components.question_type.value in ['relationship', 'retrieval']:
+            if question_components.question_type.value in ["relationship", "retrieval"]:
                 score += 0.3
             # Good for simple graph patterns
             if len(question_components.relationships) > 0:
@@ -222,7 +230,9 @@ class BackendRouter:
 
         # Complexity considerations
         total_elements = sum(
-            len(subset.classes) + len(subset.object_properties) + len(subset.datatype_properties)
+            len(subset.classes)
+            + len(subset.object_properties)
+            + len(subset.datatype_properties)
             for subset in ontology_subsets
         )
 
@@ -251,9 +261,7 @@ class BackendRouter:
             QueryRoute using round-robin selection
         """
         # Simple round-robin implementation
-        enabled_backends = [
-            bt for bt, bc in self.backends.items() if bc.enabled
-        ]
+        enabled_backends = [bt for bt, bc in self.backends.items() if bc.enabled]
 
         if not enabled_backends:
             raise RuntimeError("No enabled backends available")
@@ -261,13 +269,13 @@ class BackendRouter:
         # For simplicity, just return the first enabled backend
         # In a real implementation, you'd track state
         backend_type = enabled_backends[0]
-        query_language = 'sparql' if backend_type == BackendType.CASSANDRA else 'cypher'
+        query_language = "sparql" if backend_type == BackendType.CASSANDRA else "cypher"
 
         return QueryRoute(
             backend_type=backend_type,
             query_language=query_language,
             confidence=0.8,
-            reasoning=f"Round-robin routing to {backend_type.value}"
+            reasoning=f"Round-robin routing to {backend_type.value}",
         )
 
     def get_fallback_route(self, failed_backend: BackendType) -> Optional[QueryRoute]:
@@ -284,7 +292,8 @@ class BackendRouter:
 
         # Find next best backend
         fallback_backends = [
-            (bt, bc) for bt, bc in self.backends.items()
+            (bt, bc)
+            for bt, bc in self.backends.items()
             if bc.enabled and bt != failed_backend
         ]
 
@@ -295,13 +304,15 @@ class BackendRouter:
         fallback_backends.sort(key=lambda x: x[1].priority, reverse=True)
         fallback_type = fallback_backends[0][0]
 
-        query_language = 'sparql' if fallback_type == BackendType.CASSANDRA else 'cypher'
+        query_language = (
+            "sparql" if fallback_type == BackendType.CASSANDRA else "cypher"
+        )
 
         return QueryRoute(
             backend_type=fallback_type,
             query_language=query_language,
             confidence=0.7,
-            reasoning=f"Fallback from {failed_backend.value} to {fallback_type.value}"
+            reasoning=f"Fallback from {failed_backend.value} to {fallback_type.value}",
         )
 
     def get_available_backends(self) -> List[BackendType]:
@@ -333,7 +344,9 @@ class BackendRouter:
         """
         if backend_type in self.backends:
             self.backends[backend_type].enabled = enabled
-            logger.info(f"Backend {backend_type.value} {'enabled' if enabled else 'disabled'}")
+            logger.info(
+                f"Backend {backend_type.value} {'enabled' if enabled else 'disabled'}"
+            )
         else:
             logger.warning(f"Unknown backend type: {backend_type}")
 
