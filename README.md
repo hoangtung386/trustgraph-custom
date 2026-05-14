@@ -17,6 +17,28 @@
 
 TrustGraph is an agent runtime platform built around context graphs — structured, queryable representations of your domain knowledge that ground every agent query in verified, explainable facts in private deployments with sovereign control. The platform is the full stack for agentic systems: context graphs, memory, retrieval, orchestration, and inference for precision-critical agent workloads.
 
+## Local Development
+
+```bash
+# Create and activate uv virtual environment
+uv venv --python 3.12
+source .venv/bin/activate
+
+# Install all packages in editable mode
+uv pip install -e trustgraph-base/ -e trustgraph-flow/ \
+              -e trustgraph-ocr/ -e trustgraph-unstructured/ \
+              -e trustgraph-embeddings-hf/ -e trustgraph-cli/ \
+              -e trustgraph-mcp/ -e trustgraph/
+
+# Verify
+pdf-ocr-marker --help
+chunker-semantic --help
+python3 -c "from trustgraph.chunking.semantic.chunker import Processor; print('OK')"
+
+# Deactivate when done
+deactivate
+```
+
 The platform:
 - [x] Multi-model and multimodal database system
   - [x] Tabular/relational, key-value
