@@ -1,0 +1,107 @@
+{
+  "flow-blueprint": {
+    "ai-auto-ingest": {
+      "description": "AI Auto Ingest pipeline: PDF upload → OCR → semantic chunking → KG extraction → vector store + graph store",
+      "parameters": {
+        "model": {
+          "type": "llm-model",
+          "description": "LLM model for KG extraction (OpenRouter format: provider/model)",
+          "order": 1,
+          "default": "openai/gpt-4o"
+        },
+        "chunk-size": {
+          "type": "text",
+          "description": "Semantic chunk target size in tokens",
+          "order": 2,
+          "default": "2000"
+        }
+      },
+      "class": {
+        "text-completion:{class}": {
+          "topics": {
+            "request": "non-persistent://tg/request/text-completion:{class}",
+            "response": "non-persistent://tg/response/text-completion:{class}"
+          },
+          "parameters": {
+            "model": "{model}"
+          }
+        }
+      },
+      "flow": {
+        "pdf-ocr-marker:{id}": {
+          "topics": {
+            "input": "persistent://tg/flow/document-load:{id}",
+            "output": "persistent://tg/flow/text-document-load:{id}",
+            "triples": "persistent://tg/flow/triples-store:{id}"
+          }
+        },
+        "chunker:{id}": {
+          "topics": {
+            "input": "persistent://tg/flow/text-document-load:{id}",
+            "output": "persistent://tg/flow/chunk-load:{id}",
+            "triples": "persistent://tg/flow/triples-store:{id}"
+          },
+          "parameters": {
+            "chunk_size": "{chunk-size}"
+          }
+        },
+        "kg-extract-relationships:{id}": {
+          "topics": {
+            "input": "persistent://tg/flow/chunk-load:{id}",
+            "triples": "persistent://tg/flow/triples-store:{id}"
+          },
+          "parameters": {
+            "concurrency": "1",
+            "text-completion": "{class}"
+          }
+        },
+        "kg-extract-agent:{id}": {
+          "topics": {
+            "input": "persistent://tg/flow/chunk-load:{id}",
+            "triples": "persistent://tg/flow/triples-store:{id}"
+          },
+          "parameters": {
+            "concurrency": "1",
+            "text-completion": "{class}"
+          }
+        },
+        "kg-extract-definitions:{id}": {
+          "topics": {
+            "input": "persistent://tg/flow/chunk-load:{id}",
+            "triples": "persistent://tg/flow/triples-store:{id}"
+          },
+          "parameters": {
+            "concurrency": "1",
+            "text-completion": "{class}"
+          }
+        },
+        "triples-write:{id}": {
+          "topics": {
+            "input": "persistent://tg/flow/triples-store:{id}"
+          },
+          "parameters": {
+            "collection-strict": "true"
+          }
+        },
+        "document-embeddings:{id}": {
+          "topics": {
+            "input": "persistent://tg/flow/triples-store:{id}"
+          }
+        },
+        "graph-embeddings:{id}": {
+          "topics": {
+            "input": "persistent://tg/flow/triples-store:{id}"
+          }
+        }
+      },
+      "interfaces": {
+        "document-load": {
+          "flow": "persistent://tg/flow/document-load:{id}"
+        },
+        "triples-store": {
+          "flow": "persistent://tg/flow/triples-store:{id}"
+        }
+      }
+    }
+  }
+}
