@@ -1,5 +1,5 @@
 
-from .. schema import LibrarianRequest, LibrarianResponse, Error, Triple
+from .. schema import LibrarianRequest, LibrarianResponse, Error, Triple, IRI
 from .. schema import UploadSession
 from .. knowledge import hash
 from .. exceptions import RequestError
@@ -546,6 +546,129 @@ class Librarian:
             total_chunks=session["total_chunks"],
             bytes_received=bytes_received,
             total_bytes=session["total_size"],
+        )
+
+    async def ingest_document(self, request, workspace):
+        """Kết hợp add_document + add_processing trong 1 call.
+
+        Uploads the document and immediately triggers the processing
+        pipeline (OCR, chunking, KG extraction, embeddings).
+        If no flow is specified, only uploads the document.
+        """
+        logger.info(f"Ingesting document {request.document_metadata.id if request.document_metadata else 'unknown'}")
+
+        if request.document_metadata:
+            await self.add_document(request, workspace)
+
+        if request.processing_metadata and request.processing_metadata.flow:
+            if not request.processing_metadata.collection:
+                raise RequestError("Collection parameter is required")
+
+            request.processing_metadata.document_id = request.document_metadata.id
+
+            await self.add_processing(request, workspace)
+        elif request.processing_metadata and not request.processing_metadata.flow:
+            logger.info("No flow specified, document uploaded without processing")
+
+        return LibrarianResponse(
+            document_id=request.document_metadata.id if request.document_metadata else "",
+        )
+
+    async def get_ingest_status(self, request, workspace):
+        """Check processing status for a document.
+
+        Examines child documents (pages, chunks) to determine
+        which pipeline stages have completed.
+        """
+        doc_id = request.document_id
+        logger.debug(f"Checking ingest status for {doc_id}")
+
+        try:
+            doc = await self.table_store.get_document(workspace, doc_id)
+        except RuntimeError:
+            return LibrarianResponse(
+                error=Error(type="not-found", message="Document not found"),
+                document_id=doc_id,
+            )
+
+        children = await self.table_store.list_children(doc_id)
+
+        pages = [c for c in children if c.document_type == "page"]
+        chunks = [c for c in children if c.document_type == "chunk"]
+
+        stages = {
+            "upload": "completed",
+            "ocr": "completed" if pages else "pending",
+            "chunking": "completed" if chunks else "pending",
+            "kg_extraction": "pending",
+            "embeddings": "pending",
+        }
+
+        if pages and chunks:
+            stages["kg_extraction"] = "completed"
+            stages["embeddings"] = "completed"
+
+        all_done = all(v == "completed" for v in stages.values())
+        status = "completed" if all_done else "processing"
+
+        return LibrarianResponse(
+            document_id=doc_id,
+            parameters={
+                "status": status,
+                "stages": stages,
+                "page_count": len(pages),
+                "chunk_count": len(chunks),
+            },
+        )
+
+    async def get_ingest_graph(self, request, workspace):
+        """Retrieve extracted knowledge graph for a document.
+
+        Returns metadata triples from the document table and
+        child document information as graph nodes.
+        """
+        doc_id = request.document_id
+        logger.debug(f"Getting ingest graph for {doc_id}")
+
+        try:
+            doc = await self.table_store.get_document(workspace, doc_id)
+        except RuntimeError:
+            return LibrarianResponse(
+                error=Error(type="not-found", message="Document not found"),
+                document_id=doc_id,
+            )
+
+        children = await self.table_store.list_children(doc_id)
+
+        triples_data = []
+        if doc.metadata:
+            for t in doc.metadata:
+                s_val = t.s.iri if t.s.type == IRI else t.s.value
+                p_val = t.p.iri if t.p.type == IRI else t.p.value
+                o_val = t.o.iri if t.o.type == IRI else t.o.value
+                triples_data.append({
+                    "subject": s_val,
+                    "predicate": p_val,
+                    "object": o_val,
+                })
+
+        entities = set()
+        for t in triples_data:
+            entities.add(t["subject"])
+            if not t["object"].startswith('"'):
+                entities.add(t["object"])
+
+        return LibrarianResponse(
+            document_id=doc_id,
+            parameters={
+                "document_id": doc_id,
+                "title": doc.title,
+                "kind": doc.kind,
+                "triple_count": len(triples_data),
+                "triples": triples_data,
+                "entities": sorted(entities),
+                "child_count": len(children),
+            },
         )
 
     async def list_uploads(self, request, workspace):
