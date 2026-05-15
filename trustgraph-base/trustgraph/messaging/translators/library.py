@@ -152,6 +152,8 @@ class LibraryResponseTranslator(MessageTranslator):
             result["received-chunks"] = obj.received_chunks
         if obj.missing_chunks:
             result["missing-chunks"] = obj.missing_chunks
+        if obj.parameters:
+            result["parameters"] = obj.parameters
         if obj.upload_sessions:
             result["upload-sessions"] = [
                 {
