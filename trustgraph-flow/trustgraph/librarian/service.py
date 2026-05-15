@@ -494,6 +494,10 @@ class Processor(WorkspaceProcessor):
             "add-child-document": self.librarian.add_child_document,
             "list-children": self.librarian.list_children,
             "stream-document": self.librarian.stream_document,
+            # Ingest automation operations
+            "ingest": self.librarian.ingest_document,
+            "ingest-status": self.librarian.get_ingest_status,
+            "ingest-graph": self.librarian.get_ingest_graph,
         }
 
         if v.operation not in impls:
