@@ -465,6 +465,19 @@ for _op in ("update-collection", "delete-collection"):
 
 
 # ---------------------------------------------------------------------------
+# Ingest automation entries.
+#
+# ``ingest:ingest`` — combined document upload + pipeline trigger.
+# ``ingest:status`` — check processing status for a document.
+# ``ingest:graph``  — retrieve extracted knowledge graph for a document.
+# ---------------------------------------------------------------------------
+
+_register_kind_op("librarian", "ingest", "documents:write")
+_register_kind_op("librarian", "ingest-status", "documents:read")
+_register_kind_op("librarian", "ingest-graph", "graph:read")
+
+
+# ---------------------------------------------------------------------------
 # Per-flow data-plane services.
 #
 # /api/v1/flow/{flow}/service/{kind} and the streaming
