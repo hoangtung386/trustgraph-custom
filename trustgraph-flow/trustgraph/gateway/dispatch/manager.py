@@ -86,6 +86,7 @@ workspace_dispatchers = {
     "librarian": LibrarianRequestor,
     "knowledge": KnowledgeRequestor,
     "collection-management": CollectionManagementRequestor,
+    "ingest": LibrarianRequestor,
 }
 
 workspace_default_request_queues = {
@@ -94,6 +95,7 @@ workspace_default_request_queues = {
     "librarian": librarian_request_queue,
     "knowledge": knowledge_request_queue,
     "collection-management": collection_request_queue,
+    "ingest": librarian_request_queue,
 }
 
 workspace_default_response_queues = {
@@ -102,6 +104,7 @@ workspace_default_response_queues = {
     "librarian": librarian_response_queue,
     "knowledge": knowledge_response_queue,
     "collection-management": collection_response_queue,
+    "ingest": librarian_response_queue,
 }
 
 global_dispatchers = {**system_dispatchers, **workspace_dispatchers}
@@ -217,6 +220,16 @@ class DispatcherManager:
         params the global dispatcher would expect."""
         async def _process(data, responder):
             return await self.invoke_global_service(data, responder, "iam")
+        return DispatcherWrapper(_process)
+
+    def dispatch_ingest(self):
+        """Pre-configured ingest dispatcher.  Pins the kind to
+        ``ingest`` and routes through the librarian service."""
+        async def _process(data, responder, params=None):
+            workspace = data.get("workspace", "default")
+            return await self.invoke_global_service(
+                data, responder, "ingest", workspace=workspace,
+            )
         return DispatcherWrapper(_process)
 
     def dispatch_core_export(self):
