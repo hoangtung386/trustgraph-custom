@@ -11,6 +11,7 @@ from . i18n import I18nPackEndpoint
 from . auth_endpoints import AuthEndpoints
 from . iam_endpoint import IamEndpoint
 from . registry_endpoint import RegistryRoutedVariableEndpoint
+from .. ingest_endpoint import IngestEndpoint
 
 from .. capabilities import PUBLIC, AUTHENTICATED, auth_failure, workspace_not_found
 from .. registry import lookup as _registry_lookup, RequestContext, ResourceLevel
@@ -206,6 +207,13 @@ class EndpointManager:
                 prometheus_url=prometheus_url,
                 auth=auth,
                 capability="metrics:read",
+            ),
+
+            # Ingest automation: multipart file upload + auto pipeline trigger.
+            IngestEndpoint(
+                endpoint_path="/api/v1/ingest",
+                auth=auth,
+                librarian_dispatcher=dispatcher_manager.dispatch_ingest(),
             ),
 
             # Global services: registry-driven per-operation gating.
