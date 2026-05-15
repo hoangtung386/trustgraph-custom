@@ -117,6 +117,44 @@ print('OpenRouter:', r.choices[0].message.content[:50])
 "
 ```
 
+### AI Automation Ingest API
+
+After configuring cloud credentials and starting a flow, you can upload documents and auto-trigger the full processing pipeline (OCR → chunking → KG extraction → Qdrant + Cassandra) with a single API call:
+
+```bash
+# Upload a PDF — triggers OCR, chunking, KG extraction automatically
+curl -X POST http://localhost:8088/api/v1/ingest \
+  -H "Authorization: Bearer <your-token>" \
+  -F "file=@document.pdf" \
+  -F "flow=my-flow" \
+  -F "collection=default"
+
+# Response:
+# {
+#   "document_id": "uuid",
+#   "pdf_url": "/api/v1/document-stream?document-id=uuid",
+#   "status_url": "/api/v1/ingest/uuid/status",
+#   "graph_url": "/api/v1/ingest/uuid/graph",
+#   "status": "processing"
+# }
+
+# Check processing status
+curl http://localhost:8088/api/v1/ingest/<document_id>/status \
+  -H "Authorization: Bearer <your-token>"
+
+# Get extracted knowledge graph
+curl http://localhost:8088/api/v1/ingest/<document_id>/graph \
+  -H "Authorization: Bearer <your-token>"
+```
+
+**Available fields** for `POST /api/v1/ingest`:
+| Field | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `file` | yes | — | PDF, DOCX, image, or any supported document |
+| `flow` | no | `""` (upload only) | Flow ID to trigger processing pipeline |
+| `collection` | no | `default` | Collection name for organizing documents |
+| `title` | no | filename | Document title |
+
 The platform:
 - [x] Multi-model and multimodal database system
   - [x] Tabular/relational, key-value
@@ -126,18 +164,21 @@ The platform:
   - [x] Automated entity and relationship extraction
   - [x] Ontology-driven graph construction
   - [x] Graph-grounded retrieval for explainable outputs
-- [x] Automated data ingest and loading
-  - [x] Quick ingest with semantic similarity retrieval
-  - [x] Ontology structuring for precision retrieval
+- [x] AI Automation Ingest Pipeline
+  - [x] `POST /api/v1/ingest` — single-call file upload + auto pipeline trigger
+  - [x] PDF → OCR (marker-pdf) → Markdown → semantic chunking
+  - [x] Automated Knowledge Graph extraction (entities, relationships)
+  - [x] Qdrant vector store + Cassandra graph store
+  - [x] All models via OpenRouter
 - [x] Out-of-the-box RAG pipelines
   - [x] DocumentRAG
   - [x] GraphRAG
-  - [x] OntologyRAG     
+  - [x] OntologyRAG
 - [x] 3D GraphViz for exploring context
 - [x] Fully Agentic System
   - [x] Single or Multi Agent
   - [x] ReAct, Plan-then-Execute, and Supervisor patterns
-  - [x] MCP integration 
+  - [x] MCP integration
 - [x] Run anywhere
   - [x] Deploy locally with Docker
   - [x] Deploy in cloud with Kubernetes
@@ -149,7 +190,6 @@ The platform:
   - [x] Websocket API [Docs](https://docs.trustgraph.ai/reference/apis/websocket.html)
   - [x] Python API [Docs](https://docs.trustgraph.ai/reference/apis/python)
   - [x] CLI [Docs](https://docs.trustgraph.ai/reference/cli/)
-     
 ## No API Keys Required
 
 How many times have you cloned a repo and opened the `.env.example` to see the dozens of API keys for 3rd party dependencies needed to make the services work? There are only 3 things in TrustGraph that might need an API key:
