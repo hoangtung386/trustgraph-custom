@@ -210,6 +210,10 @@ class LibrarianResponse:
     # list-uploads response
     upload_sessions: list[UploadSession] = field(default_factory=list)
 
+    # Generic key-value parameters for extensible responses
+    # (e.g., ingest status stages, graph data).
+    parameters: dict = field(default_factory=dict)
+
     # Protocol flag: True if this is the final response for a request.
     # Default True since most operations are single request/response.
     # Only stream-document sets False for intermediate chunks.
